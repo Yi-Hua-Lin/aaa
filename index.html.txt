@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>薪資小管家 - 日系抹茶版</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            /* 日系抹茶色調 */
+            --primary-green: #86A789; 
+            --dark-green: #6B8A6E;    
+            --deep-matcha: #567359; /* 深抹茶色 */
+            --matcha-light: #E8F0E8;
+            --matcha-bg: #F2F5ED;
+            --soft-white: #FFFFFF;
+            --text-color: #55584D;
+            --card-shadow: 0 8px 20px rgba(134, 167, 137, 0.2);
+            --numpad-bg: #FAF9F6;
+            --accent-wood: #735F32;
+            --highlight-cream: #FFFDF5;
+            --weekend-bg: #F0F4EF;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: "PingFang TC", "Hiragino Sans GB", "Microsoft JhengHei", sans-serif;
+        }
+
+        body {
+            margin: 0; 
+            padding: 0; 
+            background-color: var(--matcha-bg); 
+            color: var(--text-color); 
+            overflow-x: hidden; 
+            padding-bottom: 40px;
+        }
+
+        /* 導覽按鈕區域 */
+        .nav-container {
+            display: flex; 
+            justify-content: center; 
+            position: sticky;
+            top: 0;
+            width: 100%; 
+            padding: 20px 0;
+            z-index: 100;
+            background-color: var(--matcha-bg);
+        }
+
+        .nav-tabs { 
+            display: flex; 
+            gap: 15px; 
+            padding: 12px 25px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 35px;
+            border: 1px solid rgba(255,255,255,0.8);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+        }
+        
+        .tab-btn { 
+            background: var(--soft-white); 
+            border: none;
+            width: 60px; 
+            height: 60px; 
+            border-radius: 22px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: var(--primary-green); 
+            cursor: pointer; 
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .tab-btn i, .tab-btn svg {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .tab-btn.active { 
+            background: var(--accent-wood); 
+            color: white; 
+            transform: scale(1.1); 
+            box-shadow: 0 6px 15px rgba(115, 95, 50, 0.4);
+        }
+
+        .main-container { 
+            position: relative; 
+            margin: 0 auto; 
+            background: var(--soft-white); 
+            border-radius: 40px; 
+            min-height: calc(100vh - 120px); 
+            padding: 35px 25px; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03); 
+            z-index: 10;
+            max-width: 500px;
+            width: 92%;
+        }
+        
+        .page { display: none; animation: fadeIn 0.4s ease-out; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .page-header-title {
+            font-size: 22px; font-weight: 800; color: var(--accent-wood); margin-bottom: 25px; padding-left: 15px; border-left: 5px solid var(--primary-green); line-height: 1.2;
+        }
+
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--dark-green); letter-spacing: 0.5px; }
+        .input-with-symbol { position: relative; display: flex; align-items: center; }
+        .input-with-symbol::before { content: "$"; position: absolute; left: 16px; color: var(--dark-green); font-weight: bold; font-size: 18px; z-index: 5; }
+        .input-with-symbol input { padding-left: 35px; }
+        input, select { width: 100%; height: 55px; padding: 0 16px; border: 2.5px solid #F0F4F0; border-radius: 18px; outline: none; background: #FAFBF9; color: var(--text-color); font-size: 16px; transition: 0.3s; }
+        input:focus { border-color: var(--primary-green); background: white; }
+        .no-keyboard { caret-color: transparent; cursor: pointer; }
+        .input-active { border-color: var(--primary-green) !important; box-shadow: 0 0 10px rgba(134, 167, 137, 0.2); background: white !important; }
+
+        .btn-save { background: linear-gradient(135deg, var(--primary-green), var(--dark-green)); color: white; border: none; width: 100%; padding: 18px; border-radius: 22px; font-size: 18px; font-weight: bold; margin-top: 15px; cursor: pointer; box-shadow: 0 5px 15px rgba(134, 167, 137, 0.4); transition: 0.2s; }
+        .btn-save:active { transform: scale(0.97); }
+
+        /* Numpad 縮小優化樣式 */
+        .numpad-overlay {
+            position: fixed; 
+            bottom: 20px; 
+            left: 50%; 
+            transform: translate(-50%, 120%); 
+            background: var(--numpad-bg); 
+            border-radius: 35px; 
+            padding: 15px 20px 25px 20px; 
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2); 
+            z-index: 2000; 
+            transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1); 
+            width: 85%;
+            max-width: 350px; 
+            margin: 0 auto; 
+            border: 4px solid var(--primary-green);
+        }
+        .numpad-overlay.show { transform: translate(-50%, 0); }
+        .numpad-screen { background: #F2F6F2; border-radius: 18px; padding: 10px 15px; margin-bottom: 15px; text-align: right; border: 2.5px solid #E0E8E0; }
+        .numpad-screen .value { font-size: 24px; font-weight: 900; color: var(--accent-wood); }
+        .numpad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .num-btn { 
+            background: var(--soft-white); 
+            border: none; 
+            border-radius: 15px; 
+            padding: 12px; 
+            font-size: 20px; 
+            font-weight: 800; 
+            color: var(--accent-wood); 
+            cursor: pointer; 
+            box-shadow: 0 4px 0px #E0E8E0; 
+            transition: 0.1s; 
+            aspect-ratio: 1.2/1; 
+        }
+        .num-btn:active { transform: translateY(3px); box-shadow: 0 1px 0px #E0E8E0; }
+        .num-btn.action { background: var(--dark-green); color: white; box-shadow: 0 4px 0px #567359; font-size: 16px; }
+
+        /* 卡片與錢包 */
+        .wallet-container { position: relative; margin-top: 20px; display: flex; flex-direction: column; min-height: 250px; padding-bottom: 150px; }
+        .id-card {
+            position: relative; width: 100%; background: white; border-radius: 25px; padding: 25px; border: 2.5px solid #F0F4F0; margin-bottom: -180px; transition: 0.5s cubic-bezier(0.19, 1, 0.22, 1); box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.03); 
+        }
+        .id-card.expanded { margin-bottom: 25px; margin-top: 10px; z-index: 500 !important; box-shadow: var(--card-shadow); border-color: var(--primary-green); transform: scale(1.02); }
+        .no-badge { background: var(--matcha-light); color: var(--dark-green); padding: 5px 15px; border-radius: 12px; font-size: 13px; font-weight: 900; }
+        .card-photo { width: 85px; height: 105px; border-radius: 15px; border: 3px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+
+        .month-scroller { display: flex; overflow-x: auto; gap: 15px; padding: 10px 5px; scrollbar-width: none; margin-bottom: 25px; }
+        .month-item { flex: 0 0 85px; text-align: center; padding: 12px; border-radius: 20px; background: #FAFBF9; transition: 0.3s; border: 1.5px solid #F0F4F0; }
+        .month-item.active { background: var(--primary-green); color: white; border-color: transparent; box-shadow: 0 5px 15px rgba(134, 167, 137, 0.4); }
+
+        .calendar-day { aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:18px; font-size:15px; cursor: pointer; transition: 0.2s; position: relative; }
+        .calendar-day:active { transform: scale(0.9); }
+
+        .overlay { position: fixed; inset: 0; background: rgba(85, 88, 77, 0.4); z-index: 999; display: none; backdrop-filter: blur(4px); }
+        .success-alert, .detail-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 88%; max-width: 350px; background: white; border-radius: 35px; padding: 35px; text-align: center; z-index: 1100; box-shadow: 0 25px 60px rgba(0,0,0,0.2); display: none; border: 4px solid var(--primary-green); }
+        .salary-card { background: var(--highlight-cream); border-radius: 35px; padding: 30px; border: 2.5px solid #F0F4F0; margin-top: 20px; box-shadow: inset 0 0 15px rgba(134, 167, 137, 0.05); }
+        
+        /* 實領薪資合計區塊 - 底色改為深抹茶色 */
+        .total-salary-box { background: var(--deep-matcha); border-radius: 22px; padding: 20px; color: white; margin-top: 15px; box-shadow: 0 4px 12px rgba(86, 115, 89, 0.3); }
+
+        .table-section table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 20px; overflow: hidden; border: 2px solid #F0F4F0; font-size: 14px; }
+        .table-section th { padding: 15px 10px; background: #F2F6F2; color: var(--dark-green); font-weight: 800; }
+        .table-section td { padding: 12px 10px; border-bottom: 1.5px solid #F8F9F2; text-align: center; }
+        
+        .row-highlight { background-color: var(--weekend-bg) !important; }
+        .row-highlight td { color: var(--dark-green); }
+
+        .btn-edit-attendance { background: var(--matcha-light); color: var(--dark-green); border: none; padding: 12px; border-radius: 15px; font-weight: 900; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; cursor: pointer; transition: 0.2s; }
+        .btn-edit-attendance:active { transform: scale(0.95); background: #DBE5DB; }
+    </style>
+</head>
+<body>
+
+    <div class="overlay" id="global-overlay" onclick="closeAllModals()"></div>
+
+    <div class="numpad-overlay" id="custom-numpad">
+        <div class="numpad-screen">
+            <span id="numpad-label" style="display:block;font-size:12px;color:var(--dark-green);text-align:left;font-weight:bold;">輸入金額</span>
+            <div class="value" id="numpad-display">0</div>
+        </div>
+        <div class="numpad-grid">
+            <button class="num-btn" onclick="typeNum('1')">1</button>
+            <button class="num-btn" onclick="typeNum('2')">2</button>
+            <button class="num-btn" onclick="typeNum('3')">3</button>
+            <button class="num-btn" onclick="typeNum('4')">4</button>
+            <button class="num-btn" onclick="typeNum('5')">5</button>
+            <button class="num-btn" onclick="typeNum('6')">6</button>
+            <button class="num-btn" onclick="typeNum('7')">7</button>
+            <button class="num-btn" onclick="typeNum('8')">8</button>
+            <button class="num-btn" onclick="typeNum('9')">9</button>
+            <button class="num-btn" style="background:#FFEDEB;color:#FF8A8A;" onclick="typeNum('del')"><i data-lucide="delete" style="width:20px;"></i></button>
+            <button class="num-btn" onclick="typeNum('0')">0</button>
+            <button class="num-btn action" onclick="closeNumPad()">完成</button>
+        </div>
+    </div>
+
+    <div class="success-alert" id="success-alert">
+        <div style="font-size: 55px;">🍵</div>
+        <h2 id="success-title" style="color:var(--accent-wood);font-weight:900;">已儲存</h2>
+        <p id="success-message" style="color:var(--text-color); font-size: 15px; font-weight: 600; margin: 15px 0;">辛苦了，喝杯茶休息一下吧！</p>
+        <button class="btn-save" onclick="closeSuccessAlert()">好的</button>
+    </div>
+
+    <div class="detail-modal" id="detail-modal">
+        <div style="text-align:left; border-bottom:2px dashed var(--primary-green); padding-bottom:15px; margin-bottom:15px;">
+            <h3 id="detail-date-title" style="margin:0;color:var(--accent-wood);">2025/01/01</h3>
+        </div>
+        <div id="detail-content-list" style="text-align:left; line-height:2;">
+            <div style="display:flex;justify-content:space-between;"><span>上班</span><b id="detail-start">-</b></div>
+            <div style="display:flex;justify-content:space-between;"><span>下班</span><b id="detail-end">-</b></div>
+            <div style="display:flex;justify-content:space-between;"><span>休息</span><b id="detail-rest">-</b></div>
+            <div style="display:flex;justify-content:space-between;"><span>雙薪</span><b id="detail-double">-</b></div>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid #eee;margin-top:10px;padding-top:10px;color:var(--primary-green);font-size:18px;">
+                <span>當日時數</span><b id="detail-hours">0.0 小時</b>
+            </div>
+        </div>
+        <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+            <button class="btn-edit-attendance" id="btn-goto-edit">
+                <i data-lucide="edit"></i> 修改紀錄
+            </button>
+            <button class="btn-save" style="padding:12px; margin-top:0;" onclick="closeAllModals()">關閉</button>
+        </div>
+    </div>
+
+    <div class="nav-container">
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="showPage('page-profile')"><i data-lucide="user"></i></button>
+            <button class="tab-btn" onclick="showPage('page-attendance')"><i data-lucide="edit-3"></i></button>
+            <button class="tab-btn" onclick="showPage('page-calendar')"><i data-lucide="calendar"></i></button>
+            <button class="tab-btn" onclick="showPage('page-salary')"><i data-lucide="banknote"></i></button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div id="page-profile" class="page active">
+            <div class="page-header-title">基本資料</div>
+            <div id="wallet-view-section" style="display:none;">
+                <div id="id-card-wallet" class="wallet-container"></div>
+                <div style="margin-top: 180px;">
+                    <button class="btn-save" onclick="startNewProfile()"><i data-lucide="plus-circle" style="vertical-align: middle; margin-right: 5px;"></i> 新增員工證</button>
+                </div>
+            </div>
+            <div id="profile-form-container">
+                <div class="form-group"><label>姓名</label><input type="text" id="prof-name" placeholder="您的名字"></div>
+                <div class="form-group"><label>公司</label><input type="text" id="prof-comp" placeholder="工作單位"></div>
+                <div class="form-group">
+                    <label>到職日</label>
+                    <input type="date" id="prof-join-date" onchange="updateJoinDateDisplay()">
+                    <div id="join-date-text" style="font-size: 13px; color: #8899AA; margin-top: 8px;"></div>
+                </div>
+                <div class="form-group">
+                    <label>勞保自付額</label>
+                    <div class="input-with-symbol"><input type="text" id="prof-insurance" class="no-keyboard" placeholder="0" readonly onclick="openNumPad('prof-insurance', '勞保自付額')"></div>
+                </div>
+                <div class="form-group">
+                    <label>時薪</label>
+                    <div class="input-with-symbol"><input type="text" id="prof-hourly" class="no-keyboard" placeholder="0" readonly onclick="openNumPad('prof-hourly', '時薪設定')"></div>
+                </div>
+                <div class="form-group"><label>更新日期</label><select id="prof-update-month"></select></div>
+                <button class="btn-save" onclick="saveProfile()">儲存並生成員工證</button>
+                <button class="btn-mini btn-edit" id="cancel-edit-btn" style="display:none; margin-top:10px; width:100%; border-radius:20px; padding:12px;" onclick="cancelProfileEdit()">取消修改</button>
+            </div>
+        </div>
+
+        <div id="page-attendance" class="page">
+            <div class="page-header-title">出勤紀錄</div>
+            <div class="form-group">
+                <label>日期</label><input type="date" id="att-date" onchange="updateAttDateDisplay()">
+                <div id="att-date-text" style="font-size: 13px; color: #8899AA; margin-top: 8px;"></div>
+            </div>
+            <div class="form-group"><label>上班時間</label><select id="att-start" onchange="calculateHours()"></select></div>
+            <div class="form-group"><label>下班時間</label><select id="att-end" onchange="calculateHours()"></select></div>
+            <div class="form-group"><label>休息時間</label><select id="att-rest" onchange="calculateHours()"></select></div>
+            <div class="form-group"><label>是否雙薪</label><select id="att-double"><option>否</option><option>是</option></select></div>
+            <div class="form-group"><label>當日時數</label><div id="att-total-display" style="padding:18px; background:var(--matcha-bg); border-radius:18px; font-weight:bold; color:var(--primary-green); border:2px solid #F0F4F0; text-align:center;">0.0 小時</div></div>
+            <button class="btn-save" onclick="saveAttendance()">儲存紀錄</button>
+        </div>
+
+        <div id="page-calendar" class="page">
+            <div class="page-header-title">預覽出勤資訊</div>
+            <div class="month-scroller" id="month-scroller"></div>
+            <div id="calendar-grid" style="display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-bottom:25px;"></div>
+            <div class="table-section">
+                <table>
+                    <thead>
+                        <tr><th>日期</th><th>上班</th><th>下班</th><th>雙薪</th><th>時數</th></tr>
+                    </thead>
+                    <tbody id="attendance-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="page-salary" class="page">
+            <div class="page-header-title">每月薪資表</div>
+            <div class="month-scroller" id="salary-month-scroller"></div>
+            <div class="form-group"><label>員工證版本</label><select id="salary-emp-id" onchange="updateSalaryData()"></select></div>
+            <div class="salary-card">
+                <div style="font-size: 18px; font-weight: 900; color: var(--accent-wood); text-align: center; margin-bottom: 20px; border-bottom: 2px dashed var(--primary-green); padding-bottom: 15px;" id="salary-display-title">薪資結算</div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><span>一般時數</span><strong id="stat-normal-hours">0 小時</strong></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><span>雙薪時數</span><strong id="stat-double-hours">0 小時</strong></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><span>加班時數</span><strong id="stat-ot-hours">0 小時</strong></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><span>時薪</span><strong id="stat-hourly-rate">$0</strong></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:12px;"><span>勞保</span><strong id="stat-insurance">$0</strong></div>
+                <div class="total-salary-box">
+                    <label style="color:rgba(255,255,255,0.8);display:block;margin-bottom:5px;">實領薪資合計</label>
+                    <div id="stat-total-pay" style="font-size:28px; font-weight:900;">$ 0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* 核心邏輯保持不變 */
+        let profileData = JSON.parse(localStorage.getItem('profile_db')) || [];
+        let attendanceData = JSON.parse(localStorage.getItem('attendance_db')) || [];
+        let editingProfileId = null;
+        let currentViewMonth = new Date().getMonth();
+        let currentViewYear = new Date().getFullYear();
+        let activeInputId = null;
+
+        // 初始化下拉選單時間
+        function initTimeSelectors() {
+            const starts = document.getElementById('att-start');
+            const ends = document.getElementById('att-end');
+            const rests = document.getElementById('att-rest');
+            
+            for(let h=0; h<24; h++) {
+                for(let m of ['00','30']) {
+                    let t = `${h.toString().padStart(2,'0')}:${m}`;
+                    starts.innerHTML += `<option value="${t}">${t}</option>`;
+                    ends.innerHTML += `<option value="${t}">${t}</option>`;
+                }
+            }
+            for(let i=0; i<=4; i+=0.5) {
+                rests.innerHTML += `<option value="${i.toFixed(1)}">${i.toFixed(1)} 小時</option>`;
+            }
+            // 預設值
+            starts.value = "09:00"; ends.value = "18:00"; rests.value = "1.0";
+        }
+
+        function openNumPad(inputId, labelText) {
+            document.querySelectorAll('.no-keyboard').forEach(el => el.classList.remove('input-active'));
+            activeInputId = inputId;
+            const input = document.getElementById(inputId);
+            input.classList.add('input-active');
+            document.getElementById('numpad-label').innerText = labelText;
+            document.getElementById('numpad-display').innerText = input.value || '0';
+            document.getElementById('global-overlay').style.display = 'block';
+            document.getElementById('custom-numpad').classList.add('show');
+        }
+        function closeNumPad() {
+            if(activeInputId) document.getElementById(activeInputId).classList.remove('input-active');
+            document.getElementById('custom-numpad').classList.remove('show');
+            document.getElementById('global-overlay').style.display = 'none';
+            activeInputId = null;
+        }
+        function typeNum(val) {
+            if (!activeInputId) return;
+            const input = document.getElementById(activeInputId);
+            const display = document.getElementById('numpad-display');
+            let current = input.value;
+            if (val === 'del') input.value = current.length > 1 ? current.slice(0, -1) : '0';
+            else input.value = (current === '0' || current === '') ? val : current + val;
+            display.innerText = input.value;
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            const btnIdx = { 'page-profile':0, 'page-attendance':1, 'page-calendar':2, 'page-salary':3 };
+            const btns = document.querySelectorAll('.tab-btn');
+            if(btns[btnIdx[pageId]]) btns[btnIdx[pageId]].classList.add('active');
+            
+            if(pageId === 'page-profile') {
+                if(profileData.length > 0 && !editingProfileId) renderProfileWallet();
+                else renderProfileFormView();
+            }
+            if(pageId === 'page-calendar') renderCalendarView();
+            if(pageId === 'page-salary') renderSalaryView();
+            lucide.createIcons();
+        }
+
+        function initProfileForm() {
+            const sel = document.getElementById('prof-update-month');
+            sel.innerHTML = '';
+            const now = new Date();
+            for(let i=0; i<12; i++) {
+                let d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+                let val = `${d.getFullYear()}年${(d.getMonth()+1).toString().padStart(2,'0')}月`;
+                sel.innerHTML += `<option value="${val}">${val}</option>`;
+            }
+            document.getElementById('prof-join-date').valueAsDate = now;
+            updateJoinDateDisplay();
+        }
+        function updateJoinDateDisplay() {
+            const val = document.getElementById('prof-join-date').value; if(!val) return;
+            const d = new Date(val); const weeks = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+            document.getElementById('join-date-text').innerText = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${weeks[d.getDay()]}`;
+        }
+        function saveProfile() {
+            const name = document.getElementById('prof-name').value;
+            const company = document.getElementById('prof-comp').value;
+            const joinDate = document.getElementById('prof-join-date').value;
+            const insurance = document.getElementById('prof-insurance').value || 0;
+            const hourly = document.getElementById('prof-hourly').value || 0;
+            const updateMonth = document.getElementById('prof-update-month').value;
+            if(!name || !company) { alert("請填寫姓名與公司名稱唷！"); return; }
+            if(editingProfileId) {
+                const idx = profileData.findIndex(p => p.id === editingProfileId);
+                profileData[idx] = { ...profileData[idx], name, company, joinDate, insurance, hourly, updateMonth };
+            } else {
+                const nextNo = (profileData.length + 1).toString().padStart(3, '0');
+                profileData.push({ id: 'ID' + Date.now(), no: 'NO.' + nextNo, name, company, joinDate, insurance, hourly, updateMonth });
+            }
+            localStorage.setItem('profile_db', JSON.stringify(profileData));
+            editingProfileId = null;
+            document.getElementById('success-title').innerText = "已儲存";
+            document.getElementById('success-message').innerText = "員工證資料已更新";
+            document.getElementById('success-alert').style.display = 'block';
+            document.getElementById('global-overlay').style.display = 'block';
+            renderProfileWallet();
+        }
+        function renderProfileFormView() {
+            document.getElementById('wallet-view-section').style.display = 'none';
+            document.getElementById('profile-form-container').style.display = 'block';
+            if(!editingProfileId) { clearProfileFields(); initProfileForm(); }
+        }
+        function clearProfileFields() {
+            document.getElementById('prof-name').value = ''; document.getElementById('prof-comp').value = '';
+            document.getElementById('prof-insurance').value = '0'; document.getElementById('prof-hourly').value = '0';
+            document.getElementById('cancel-edit-btn').style.display = 'none'; editingProfileId = null;
+        }
+        function startNewProfile() { editingProfileId = null; renderProfileFormView(); }
+        function renderProfileWallet() {
+            const walletSection = document.getElementById('wallet-view-section');
+            const walletList = document.getElementById('id-card-wallet');
+            const form = document.getElementById('profile-form-container');
+            if(profileData.length === 0 || editingProfileId) { renderProfileFormView(); } 
+            else {
+                walletSection.style.display = 'block'; form.style.display = 'none';
+                const sortedData = [...profileData].sort((a,b) => a.no.localeCompare(b.no));
+                const latestId = sortedData[sortedData.length - 1]?.id;
+                walletList.innerHTML = sortedData.map((p, idx) => {
+                    const d = new Date(p.joinDate);
+                    const dateStr = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+                    const isLatest = p.id === latestId;
+                    return `
+                    <div class="id-card ${isLatest ? 'expanded' : ''}" id="card-${p.id}" 
+                         style="z-index: ${10 + idx}" onclick="expandCard('${p.id}')">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+                            <span class="no-badge">${p.no}</span>
+                            <i data-lucide="trash-2" style="color:#D29494; cursor:pointer;" onclick="deleteProfile(event, '${p.id}')"></i>
+                        </div>
+                        <div style="display: flex; gap: 15px; align-items: center; opacity: ${isLatest?1:0.1}; transition: 0.3s;" class="card-content">
+                            <img src="https://api.dicebear.com/7.x/bottts/svg?seed=${p.name}" class="card-photo">
+                            <div style="flex: 1; font-size: 13px;">
+                                <strong style="font-size:18px; color:var(--accent-wood);">${p.name}</strong>
+                                <p style="margin:5px 0;">公司：${p.company}</p>
+                                <p style="margin:5px 0;">到職：${dateStr}</p>
+                                <p style="margin:5px 0;">時薪：$${p.hourly}</p>
+                            </div>
+                        </div>
+                        <div style="display: ${isLatest?'flex':'none'}; gap: 10px; margin-top: 20px;">
+                            <button class="btn-mini btn-edit" style="flex:1;padding:10px;border-radius:12px;border:none;background:var(--matcha-light);color:var(--dark-green);font-weight:bold;" onclick="editProfile(event, '${p.id}')">修改資料</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+            lucide.createIcons();
+        }
+        function expandCard(id) {
+            const target = document.getElementById('card-'+id); 
+            if(target.classList.contains('expanded')) return;
+            document.querySelectorAll('.id-card').forEach(c => {
+                c.classList.remove('expanded');
+                c.querySelector('.card-content').style.opacity = '0.1';
+                c.querySelectorAll('button').forEach(b => b.parentElement.style.display = 'none');
+            });
+            target.classList.add('expanded');
+            target.querySelector('.card-content').style.opacity = '1';
+            target.querySelectorAll('button').forEach(b => b.parentElement.style.display = 'flex');
+        }
+        function editProfile(e, id) {
+            e.stopPropagation(); editingProfileId = id;
+            const p = profileData.find(x => x.id === id);
+            document.getElementById('prof-name').value = p.name;
+            document.getElementById('prof-comp').value = p.company;
+            document.getElementById('prof-join-date').value = p.joinDate;
+            document.getElementById('prof-insurance').value = p.insurance;
+            document.getElementById('prof-hourly').value = p.hourly;
+            document.getElementById('prof-update-month').value = p.updateMonth;
+            document.getElementById('cancel-edit-btn').style.display = 'block';
+            renderProfileFormView();
+        }
+        function deleteProfile(e, id) { e.stopPropagation(); if(confirm('確定要刪除這張員工證嗎？')) { profileData = profileData.filter(p => p.id !== id); localStorage.setItem('profile_db', JSON.stringify(profileData)); renderProfileWallet(); } }
+
+        function updateAttDateDisplay() {
+            const val = document.getElementById('att-date').value; if(!val) return;
+            const d = new Date(val); const weeks = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+            document.getElementById('att-date-text').innerText = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${weeks[d.getDay()]}`;
+        }
+        function calculateHours() {
+            const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+            let totalMin = toMin(document.getElementById('att-end').value) - toMin(document.getElementById('att-start').value) - (parseFloat(document.getElementById('att-rest').value) * 60);
+            if(totalMin < 0) totalMin = 0; const hrs = totalMin / 60;
+            document.getElementById('att-total-display').innerText = hrs.toFixed(1) + ' 小時'; return hrs;
+        }
+        function saveAttendance() {
+            const date = document.getElementById('att-date').value;
+            if(!date) { alert("請選擇日期唷！"); return; }
+            const record = { date, start: document.getElementById('att-start').value, end: document.getElementById('att-end').value, rest: document.getElementById('att-rest').value, isDouble: document.getElementById('att-double').value, totalHours: calculateHours() };
+            const idx = attendanceData.findIndex(d => d.date === date);
+            if(idx > -1) attendanceData[idx] = record; else attendanceData.push(record);
+            localStorage.setItem('attendance_db', JSON.stringify(attendanceData));
+            document.getElementById('success-title').innerText = "已儲存";
+            document.getElementById('success-message').innerText = "紀錄成功，今天也辛苦了！";
+            document.getElementById('success-alert').style.display = 'block';
+            document.getElementById('global-overlay').style.display = 'block';
+        }
+        function closeSuccessAlert() { 
+            document.getElementById('success-alert').style.display = 'none';
+            document.getElementById('global-overlay').style.display = 'none';
+        }
+
+        function closeAllModals() {
+            document.getElementById('global-overlay').style.display = 'none';
+            document.getElementById('success-alert').style.display = 'none';
+            document.getElementById('detail-modal').style.display = 'none';
+            closeNumPad();
+        }
+
+        // 月份預覽與薪資邏輯
+        function renderCalendarView() {
+            const scroller = document.getElementById('month-scroller');
+            scroller.innerHTML = '';
+            for(let i=-6; i<=6; i++) {
+                let d = new Date(); d.setMonth(d.getMonth() + i);
+                let m = d.getMonth(); let y = d.getFullYear();
+                let active = (m === currentViewMonth && y === currentViewYear) ? 'active' : '';
+                scroller.innerHTML += `<div class="month-item ${active}" onclick="changeViewMonth(${y},${m})">${m+1}月<br><small>${y}</small></div>`;
+            }
+            renderCalendarGrid();
+        }
+
+        function changeViewMonth(y, m) { currentViewYear = y; currentViewMonth = m; renderCalendarView(); if(document.getElementById('page-salary').classList.contains('active')) renderSalaryView(); }
+
+        function renderCalendarGrid() {
+            const grid = document.getElementById('calendar-grid'); grid.innerHTML = '';
+            const first = new Date(currentViewYear, currentViewMonth, 1);
+            const last = new Date(currentViewYear, currentViewMonth + 1, 0);
+            
+            // 空白格
+            for(let i=0; i<first.getDay(); i++) grid.innerHTML += '<div></div>';
+            
+            for(let d=1; d<=last.getDate(); d++) {
+                let dateStr = `${currentViewYear}-${(currentViewMonth+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
+                let record = attendanceData.find(a => a.date === dateStr);
+                let style = record ? 'background:var(--primary-green);color:white;' : 'background:#f9f9f9;';
+                grid.innerHTML += `<div class="calendar-day" style="${style}" onclick="showDayDetail('${dateStr}')">${d}</div>`;
+            }
+            renderAttendanceTable();
+        }
+
+        function renderAttendanceTable() {
+            const tbody = document.getElementById('attendance-table-body');
+            tbody.innerHTML = '';
+            let filtered = attendanceData.filter(a => {
+                let d = new Date(a.date);
+                return d.getMonth() === currentViewMonth && d.getFullYear() === currentViewYear;
+            }).sort((a,b) => a.date.localeCompare(b.date));
+
+            filtered.forEach(a => {
+                let d = new Date(a.date);
+                let isWknd = d.getDay() === 0 || d.getDay() === 6;
+                tbody.innerHTML += `
+                    <tr class="${isWknd?'row-highlight':''}" onclick="showDayDetail('${a.date}')">
+                        <td>${a.date.split('-')[2]}</td>
+                        <td>${a.start}</td>
+                        <td>${a.end}</td>
+                        <td>${a.isDouble}</td>
+                        <td>${a.totalHours.toFixed(1)}</td>
+                    </tr>`;
+            });
+        }
+
+        function showDayDetail(dateStr) {
+            let record = attendanceData.find(a => a.date === dateStr);
+            if(!record) {
+                document.getElementById('att-date').value = dateStr;
+                updateAttDateDisplay();
+                showPage('page-attendance');
+                return;
+            }
+            document.getElementById('detail-date-title').innerText = dateStr;
+            document.getElementById('detail-start').innerText = record.start;
+            document.getElementById('detail-end').innerText = record.end;
+            document.getElementById('detail-rest').innerText = record.rest + ' 小hr';
+            document.getElementById('detail-double').innerText = record.isDouble;
+            document.getElementById('detail-hours').innerText = record.totalHours.toFixed(1) + ' 小時';
+            
+            document.getElementById('btn-goto-edit').onclick = () => {
+                document.getElementById('att-date').value = record.date;
+                document.getElementById('att-start').value = record.start;
+                document.getElementById('att-end').value = record.end;
+                document.getElementById('att-rest').value = record.rest;
+                document.getElementById('att-double').value = record.isDouble;
+                calculateHours();
+                updateAttDateDisplay();
+                closeAllModals();
+                showPage('page-attendance');
+            };
+
+            document.getElementById('detail-modal').style.display = 'block';
+            document.getElementById('global-overlay').style.display = 'block';
+        }
+
+        function renderSalaryView() {
+            const scroller = document.getElementById('salary-month-scroller');
+            scroller.innerHTML = '';
+            for(let i=-6; i<=6; i++) {
+                let d = new Date(); d.setMonth(d.getMonth() + i);
+                let m = d.getMonth(); let y = d.getFullYear();
+                let active = (m === currentViewMonth && y === currentViewYear) ? 'active' : '';
+                scroller.innerHTML += `<div class="month-item ${active}" onclick="changeViewMonth(${y},${m})">${m+1}月<br><small>${y}</small></div>`;
+            }
+
+            const empSel = document.getElementById('salary-emp-id');
+            empSel.innerHTML = profileData.map(p => `<option value="${p.id}">${p.no} - ${p.name}</option>`).join('');
+            updateSalaryData();
+        }
+
+        function updateSalaryData() {
+            const empId = document.getElementById('salary-emp-id').value;
+            const profile = profileData.find(p => p.id === empId);
+            if(!profile) return;
+
+            let filtered = attendanceData.filter(a => {
+                let d = new Date(a.date);
+                return d.getMonth() === currentViewMonth && d.getFullYear() === currentViewYear;
+            });
+
+            let normalHrs = 0; let doubleHrs = 0;
+            filtered.forEach(a => {
+                if(a.isDouble === '是') doubleHrs += a.totalHours;
+                else normalHrs += a.totalHours;
+            });
+
+            const hourly = parseFloat(profile.hourly);
+            const insurance = parseFloat(profile.insurance);
+            const totalPay = (normalHrs * hourly) + (doubleHrs * hourly * 2) - insurance;
+
+            document.getElementById('salary-display-title').innerText = `${currentViewMonth+1}月 薪資結算`;
+            document.getElementById('stat-normal-hours').innerText = normalHrs.toFixed(1) + ' 小時';
+            document.getElementById('stat-double-hours').innerText = doubleHrs.toFixed(1) + ' 小時';
+            document.getElementById('stat-hourly-rate').innerText = '$' + hourly;
+            document.getElementById('stat-insurance').innerText = '$' + insurance;
+            document.getElementById('stat-total-pay').innerText = '$ ' + Math.round(totalPay).toLocaleString();
+        }
+
+        window.onload = () => {
+            initTimeSelectors();
+            initProfileForm();
+            showPage('page-profile');
+            lucide.createIcons();
+            // 設定今日日期
+            document.getElementById('att-date').valueAsDate = new Date();
+            updateAttDateDisplay();
+        };
+    </script>
+</body>
+</html>
